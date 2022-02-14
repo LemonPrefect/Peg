@@ -17,8 +17,8 @@ PRs Welcome, Issues report Welcome.
 
 ### Things to finish
 
-[ ] remove multi-file/folder in a time with `peg remove`, which in core part is done.
+- [ ] remove multi-file/folder in a time with `peg remove`, which in core part is done.
 
-[ ] rename a folder with `peg mv`, may need combine `move`, `mkdir`, `remove`.
+- [ ] rename a folder with `peg mv`, may need combine `move`, `mkdir`, `remove`.
 
 Enjoy it with your DogeCloud OSS.
