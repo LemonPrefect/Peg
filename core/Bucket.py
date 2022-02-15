@@ -52,7 +52,6 @@ class Bucket:
                 "limit": limit
             })
         assert response.status_code == 200
-
         data = response.json()
         assert data["code"] == 200
 
@@ -100,9 +99,8 @@ class Bucket:
                 data = response.json()
                 assert data["code"] == 200
 
-                # TODO: clean the callback args
                 if callbackProgress:
-                    callbackProgress(folder, folders.index(folder) + 1 / len(folders) + len(files))
+                    callbackProgress(folder, folders.index(folder) + 1 / (len(folders) + len(files)))
 
         if len(files) > 0:
             response = self.session.post(
