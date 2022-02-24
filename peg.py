@@ -57,14 +57,14 @@ def upload(file, bucket, path):
         return
 
     if os.path.isdir(file):
-        file = file.strip("/").strip("\\")
-        path = path.strip("/").strip()
+        file = file.strip("/").strip("\\").strip()
+        path = path.strip("/").strip("\\").strip()
         _path = os.path.abspath(os.path.dirname(file))
         for root, dirs, _files in os.walk(file):
             for file in _files:
                 fileAbsPath = os.path.abspath(os.path.join(root, file))
                 uploadPath = "/".join(re.split(r'[/|//|\\\\|\\]', fileAbsPath.replace(_path, "#")))
-                uploadAbsPath = f"{path}{'' if path == '' else '/'}{uploadPath[1:]}".replace(file, "")
+                uploadAbsPath = f"{path}{'' if path == '' else '/'}{uploadPath[2:]}".replace(file, "")
                 uploadFile = bucket.File(
                     name=file,
                     path=fileAbsPath,
@@ -79,6 +79,7 @@ def upload(file, bucket, path):
                         _progress(bar, progress=round(progress * 100), message=etag)
                     )
                 except AssertionError:
+
                     click.echo("Something went wrong, please check the args.")
                     click.echo("at Bucket.Upload")
                     return
@@ -131,7 +132,7 @@ def ls(bucket, path):
         return
     token = str(token)
 
-    if not bucket and not path:
+    if not bucket:
         response = requests.get(
             url="https://api.dogecloud.com/oss/bucket/list.json",
             cookies={"token": token},
@@ -155,7 +156,7 @@ def ls(bucket, path):
 
     click.echo(f"Directory /{path.rstrip('/').lstrip('/')}, {len(files)} files/directories")
     for file in files:
-        click.echo(f"{file.name.lstrip(path):<60}\t{(int(file.fileSize) / 1024):.2f} KiB")
+        click.echo(f"{file.name.replace(path if path.endswith('/') else (path + '/'), ''):<60}\t{(int(file.fileSize) / 1024):.2f} KiB")
 
 
 @main.command(
