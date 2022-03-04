@@ -7,9 +7,9 @@ import click
 import httpx as requests
 from tqdm import tqdm
 
-from core import User, Bucket, LoginHelper
-from core.User import User
-from core.Bucket import Bucket
+from .core import LoginHelper
+from .core.User import User
+from .core.Bucket import Bucket
 
 
 @click.group()

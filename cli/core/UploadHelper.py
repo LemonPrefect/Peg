@@ -124,7 +124,6 @@ def CosHelper(bucket, file, path: str, callbackProgress=None):
             "uploadid": uploadId
         },
         headers={
-            "user-agent": "Forest/0.0.1",
             "content-type": "application/xml",
             "content-md5": f"{UploadUtils.MD5(data)}",
             "authorization": UploadUtils.GetAuth(token=token,
