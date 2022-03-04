@@ -1,5 +1,6 @@
 import os.path
 import time
+import boto3
 import magic
 import httpx as requests
 
@@ -123,7 +124,6 @@ def CosHelper(bucket, file, path: str, callbackProgress=None):
             "uploadid": uploadId
         },
         headers={
-            "user-agent": "Forest/0.0.1",
             "content-type": "application/xml",
             "content-md5": f"{UploadUtils.MD5(data)}",
             "authorization": UploadUtils.GetAuth(token=token,
@@ -146,3 +146,34 @@ def CosHelper(bucket, file, path: str, callbackProgress=None):
 def OssHelper():
     # TODO: OSS bucket upload
     pass
+
+
+def S3Helper(bucket, file, path: str):
+
+    # These lines are intended to be duplicated as CosHelper and S3Helper will work separately.
+    # A hacky way for the s3 endpoint.
+
+    response = bucket.session.post(
+        url="/upload/auth.json",
+        json={
+            "scope": f"{bucket.name}:{path}{file.name}",
+            "deadline": round(time.time()) + 900
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["code"] == 200
+
+    sessionToken, accessKeyId, secretAccessKey, info = tuple(data["data"]["uploadToken"].split(":"))
+
+    # info = info + '=' * (4 - (len(info) % 4))
+    # info = json.loads(base64.b64decode(info))
+
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=accessKeyId,
+        aws_secret_access_key=secretAccessKey,
+        aws_session_token=sessionToken,
+        endpoint_url=f"https://{bucket.source}"
+    )
+    return s3.upload_fileobj(open(file.path, "rb"), bucket.prefix, f"{path}{file.name}")
