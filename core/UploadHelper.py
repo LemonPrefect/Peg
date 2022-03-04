@@ -1,5 +1,3 @@
-import base64
-import json
 import os.path
 import time
 import boto3
@@ -168,6 +166,7 @@ def S3Helper(bucket, file, path: str):
     assert data["code"] == 200
 
     sessionToken, accessKeyId, secretAccessKey, info = tuple(data["data"]["uploadToken"].split(":"))
+
     # info = info + '=' * (4 - (len(info) % 4))
     # info = json.loads(base64.b64decode(info))
 
