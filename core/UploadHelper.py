@@ -168,8 +168,8 @@ def S3Helper(bucket, file, path: str):
     assert data["code"] == 200
 
     sessionToken, accessKeyId, secretAccessKey, info = tuple(data["data"]["uploadToken"].split(":"))
-    info = info + '=' * (4 - (len(info) % 4))
-    info = json.loads(base64.b64decode(info))
+    # info = info + '=' * (4 - (len(info) % 4))
+    # info = json.loads(base64.b64decode(info))
 
     s3 = boto3.client(
         "s3",
