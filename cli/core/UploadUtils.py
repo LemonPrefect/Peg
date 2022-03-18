@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import logging
 import time
 import urllib.parse
 
@@ -17,8 +18,8 @@ def MD5(res: bytes) -> str:
     return base64.b64encode(hashlib.md5(res).digest()).decode()
 
 
-def GetAuth(token: str, method: str, params: dict, headers: dict, pathname="/") -> str:
-    # url encode the params and headers for the consistent of signature and data sent
+def GetAuth(secretId: str, secretKey: str, method: str, params: dict, headers: dict, pathname="/") -> str:
+    # url encode the params and headers for the consistence of signature and data sent
     for key in headers.keys():
         if type(headers[key]) is str:
             headers[key] = urllib.parse.quote(headers[key]).replace("/", "%2F")
@@ -26,15 +27,13 @@ def GetAuth(token: str, method: str, params: dict, headers: dict, pathname="/") 
         if type(params[key]) is str:
             params[key] = urllib.parse.quote(params[key]).replace("/", "%2F")
 
-    secretId = token.split(":")[1]
-    secretKey = token.split(":")[2]
     method = method.lower()
     secondTimestampNow = round(time.time())
     expires = secondTimestampNow + 900
     signature = HmacSHA1("\n".join(["sha1", f"{secondTimestampNow};{expires}", SHA1(
         "\n".join([method, pathname, _compactPairs(params), _compactPairs(headers), ""])
     ), ""]), HmacSHA1(f"{secondTimestampNow};{expires}", secretKey))
-
+    logging.debug(_compactPairs(params))
     return "&".join([f"q-sign-algorithm=sha1",
                      f"q-ak={secretId}",
                      f"q-sign-time={secondTimestampNow};{expires}",
@@ -54,3 +53,4 @@ def _compactPairs(obj: dict) -> str:
     keys = list(obj.keys())
     keys.sort()
     return "&".join([f"{key}={obj[key]}" for key in keys])
+
