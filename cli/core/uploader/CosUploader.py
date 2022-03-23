@@ -34,7 +34,7 @@ class CosUploader(Uploader):
         :param file: File object with local file path as File.path
         :param path: path in the bucket for the file
         :param callbackProgress: callback function for the progress
-        :return: uploading object of the S3
+        :return: uploading object of the COS
         """
         return self._uploader.upload_file(
             Bucket=self.bucket,
