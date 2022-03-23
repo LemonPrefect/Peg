@@ -1,21 +1,41 @@
+# -*- coding=utf-8
 import logging
 import os
 import magic
 import httpx as requests
+from cli.core.Exception import CliRequestError
+from cli.core.utilities import UploadUtils
+from cli.core.uploader import Uploader
+from cli.core.File import File
 
-from cli.core import UploadUtils
-from cli.core.Uploader import Uploader
+logger = logging.getLogger(__name__)
 
 
 class MockCosUploader(Uploader):
-
-    def __init__(self, sessionToken, accessKeyId, secretAccessKey, info, endpoint):
+    """
+    COS SDK mock uploader, single thread and 2MB file slice.
+    """
+    def __init__(self, sessionToken: str, accessKeyId: str, secretAccessKey: str, info: str, endpoint: str):
+        """
+        Initiate the uploader.
+        :param sessionToken: token
+        :param accessKeyId: secretId
+        :param secretAccessKey: secretKey
+        :param info: bucket info given by DogeCloud
+        :param endpoint: endpoint as COS'
+        """
         super(MockCosUploader, self).__init__(sessionToken, accessKeyId, secretAccessKey, info)
         self.endpoint = endpoint
-        logging.debug(f"Token: {self.sessionToken}, accessKeyId: {self.accessKeyId}, endpoint: {self.endpoint}")
-        logging.info("MockCosUploader Initialized")
+        logger.debug(f"Token: {self.sessionToken}, accessKeyId: {self.accessKeyId}, endpoint: {self.endpoint}")
 
-    def upload(self, file, path, callbackProgress=None):
+    def upload(self, file: File, path: str, callbackProgress=None) -> str:
+        """
+        Upload file with slice of 2MB, single thread.
+        :param file: File object with local path as its path
+        :param path: path in the bucket for the file
+        :param callbackProgress: callback function for the progress
+        :return: final upload status
+        """
         response = requests.get(
             url=self.endpoint,
             params={
@@ -37,9 +57,11 @@ class MockCosUploader(Uploader):
                 "x-cos-security-token": self.sessionToken,
                 "x-cos-storage-class": "Standard"
             })
-        logging.debug(response.text)
-        logging.info(response.status_code)
-        assert response.status_code == 200
+        data = response.text
+        logger.debug(response.request)
+        logger.debug(data)
+        if response.status_code != 200:
+            raise CliRequestError(response)
 
         response = requests.post(
             url=f"{self.endpoint}/{self.prefix}/{path}{file.name}",
@@ -62,18 +84,23 @@ class MockCosUploader(Uploader):
                 "x-cos-security-token": self.sessionToken,
                 "x-cos-storage-class": "Standard"
             })
-        logging.debug(response.text)
-        logging.info(response.status_code)
-        assert response.status_code == 200
+        data = response.text
+        logger.debug(response.request)
+        logger.debug(data)
+        if response.status_code != 200:
+            raise CliRequestError(response)
 
         index = response.content.decode().index("<UploadId>")
         uploadId = response.content.decode()[index + 10:index + 84]
+
         bytesFile = open(f"{file.path}", "rb")
         file.fileSize = os.path.getsize(file.path)
         fileSlice = round(file.fileSize / 1024 / 1024 / 2)
         fileSlice = 1 if fileSlice <= 2 else fileSlice
+
         etagXml = ""
 
+        # put slices
         for x in range(fileSlice):
             if x == fileSlice - 1:
                 uploadFileBytes = bytesFile.read()
@@ -101,14 +128,16 @@ class MockCosUploader(Uploader):
                         ),
                     "x-cos-security-token": self.sessionToken,
                 }, data=uploadFileBytes)
-            logging.debug(response.text)
-            logging.info(response.status_code)
-            assert response.status_code == 200
+            data = response.text
+            logger.debug(response.request)
+            logger.debug(data)
+            if response.status_code != 200:
+                raise CliRequestError(response)
 
             etag = response.headers["Etag"][1:-1]
             etagXml += f"<Part><PartNumber>{x + 1}</PartNumber><ETag>&quot;{etag}&quot;</ETag></Part>"
-            logging.info(etag)
-            logging.debug(etagXml)
+            logger.debug(etagXml)
+
             if callbackProgress:
                 callbackProgress(etag, (x + 1) / fileSlice)
         data = f"""
@@ -116,6 +145,7 @@ class MockCosUploader(Uploader):
         <CompleteMultipartUpload>{etagXml}</CompleteMultipartUpload>
         """.encode()
 
+        # concat slices, complete file uploading
         response = requests.post(
             url=f"{self.endpoint}/{self.prefix}/{path}{file.name}",
             params={
@@ -138,9 +168,11 @@ class MockCosUploader(Uploader):
                     ),
                 "x-cos-security-token": self.sessionToken,
             }, data=data)
-        logging.debug(response.text)
-        logging.info(response.status_code)
-        assert response.status_code == 200
+        data = response.text
+        logger.debug(response.request)
+        logger.debug(data)
+        if response.status_code != 200:
+            raise CliRequestError(response)
 
         return response.content.decode()
 

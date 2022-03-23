@@ -1,3 +1,4 @@
+# -*- coding=utf-8
 import base64
 import json
 import logging
@@ -7,7 +8,17 @@ logger = logging.getLogger(__name__)
 
 
 class Uploader:
-    def __init__(self, sessionToken, accessKeyId, secretAccessKey, info):
+    """
+    Uploader for file uploading in different ways.
+    """
+    def __init__(self, sessionToken: str, accessKeyId: str, secretAccessKey: str, info: str):
+        """
+        Initiate the uploader.
+        :param sessionToken: token
+        :param accessKeyId: secretId
+        :param secretAccessKey: secretKey
+        :param info: bucket info given by DogeCloud
+        """
         self.sessionToken = sessionToken
         self.accessKeyId = accessKeyId
         self.secretAccessKey = secretAccessKey
