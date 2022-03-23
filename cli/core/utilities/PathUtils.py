@@ -1,5 +1,7 @@
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 def KeySplit(key: str) -> tuple:
     """
@@ -15,7 +17,7 @@ def KeySplit(key: str) -> tuple:
     filename = tokens[-1]
     tokens.remove(tokens[-1])
     path = "/".join(tokens)
-    logging.debug(f"Path: {path}, Filename {filename}")
+    logger.debug(f"Path: {path}, Filename {filename}")
     return path, filename
 
 
@@ -25,6 +27,6 @@ def NormalizePath(path: str) -> str:
     :param path: string path to a file/folder without filename.
     :return: string path parsed.
     """
-    logging.debug(f"Parsing path {path}")
+    logger.debug(f"Parsing path {path}")
     return path.replace("\\", "/").replace("//", "/").strip("/") + "/"
 
