@@ -16,7 +16,7 @@ def KeySplit(key: str) -> tuple:
 
     tokens = key.split("/")
     filename = tokens[-1]
-    tokens.remove(tokens[-1])
+    tokens.remove(filename)
     path = "/".join(tokens)
     logger.debug(f"Path: {path}, Filename {filename}")
     return path, filename
