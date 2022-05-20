@@ -380,12 +380,12 @@ def rm(bucket, file):
     try:
         bucket = Bucket(bucket, User(token))
         path, name = KeySplit(file)
-        name += "/" if str(file).endswith("/") else ""
+        name = NormalizePath(name) if str(file).endswith("/") else name
         bucket.remove([
             File(
                 name=name,
                 _type="folder" if name.endswith("/") else "file",
-                path=NormalizePath(path)
+                path=NormalizePath(path).lstrip("/")
             )
         ])
     except AssertionError:
