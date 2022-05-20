@@ -16,7 +16,7 @@ def KeySplit(key: str) -> tuple:  # sourcery skip: use-assigned-variable
 
     tokens = key.split("/")
     filename = tokens[-1]
-    tokens.pop(-1) # TODO: check this
+    tokens.pop(-1)
     path = "/".join(tokens)
     logger.debug(f"Path: {path}, Filename {filename}")
     return path, filename
