@@ -106,4 +106,3 @@ def CompactPairs(obj: dict) -> str:
     keys = list(obj.keys())
     keys.sort()
     return "&".join([f"{key}={obj[key]}" for key in keys])
-

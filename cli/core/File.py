@@ -6,4 +6,3 @@ class File:
         self.time = _time
         self.type = _type
         self.path = path
-

@@ -1,7 +1,5 @@
 import base64
 import logging
-import os
-import time
 import httpx as requests
 
 from .User import User

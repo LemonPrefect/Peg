@@ -23,4 +23,3 @@ class CliKeyError(CliException):
 class CliUploaderOptionError(CliException):
     def __init__(self, uploader, options: dict):
         self.message = f"Uploader: {str(uploader)}\nOptions: {str(options)}"
-

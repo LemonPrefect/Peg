@@ -182,7 +182,9 @@ def ls(bucket, path):
     click.echo(f"Directory /{path.rstrip('/').lstrip('/')}, {len(files)} files/directories")
     for file in files:
         click.echo(
-            f"{file.name.replace(path if path.endswith('/') else (path + '/'), ''):<60}\t{(int(file.fileSize) / 1024):.2f} KiB")
+            f"{file.name.replace(path if path.endswith('/') else (path + '/'), ''):<60}\t"
+            f"{(int(file.fileSize) / 1024):.2f} KiB"
+        )
 
 
 @main.command(
@@ -441,7 +443,7 @@ def _feastToken():
     # Read and parse config, overwritten to blank if failed
     try:
         config = json.loads(open("./config.json", "r").read())
-    except Exception:
+    except FileNotFoundError or ValueError:
         open("./config.json", "w").write("")
         click.echo("Config file crashed, overwritten.")
         return False
