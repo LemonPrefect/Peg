@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def KeySplit(key: str) -> tuple:
+def KeySplit(key: str) -> tuple:  # sourcery skip: use-assigned-variable
     """
     Separate the filename and the path from the key of the OSS given.
     :param key: string like images/essay/123/
@@ -16,7 +16,7 @@ def KeySplit(key: str) -> tuple:
 
     tokens = key.split("/")
     filename = tokens[-1]
-    tokens.remove(tokens[-1])
+    tokens.pop(-1) # TODO: check this
     path = "/".join(tokens)
     logger.debug(f"Path: {path}, Filename {filename}")
     return path, filename

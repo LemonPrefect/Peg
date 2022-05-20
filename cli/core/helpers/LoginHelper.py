@@ -2,8 +2,8 @@
 import hashlib
 import logging
 import httpx as requests
-from cli.core.Exception import CliRequestError, CliKeyError
-from cli.core.User import User
+from ..Exception import CliRequestError, CliKeyError
+from ..User import User
 
 logger = logging.getLogger(__name__)
 

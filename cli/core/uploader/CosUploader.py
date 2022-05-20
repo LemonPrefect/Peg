@@ -1,7 +1,7 @@
 # -*- coding=utf-8
 from qcloud_cos import CosS3Client, CosConfig
-from cli.core.uploader import Uploader
-from cli.core.File import File
+from ..uploader import Uploader
+from ..File import File
 
 
 class CosUploader(Uploader):

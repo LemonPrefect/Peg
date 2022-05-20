@@ -1,6 +1,6 @@
 # -*- coding=utf-8
 import httpx as requests
-from cli.core.uploader import Uploader
+# from .uploader import Uploader
 
 
 class CliException(Exception):
@@ -22,6 +22,6 @@ class CliKeyError(CliException):
 
 
 class CliUploaderOptionError(CliException):
-    def __init__(self, uploader: Uploader, options: dict):
+    def __init__(self, uploader, options: dict):
         self.message = f"Uploader: {str(uploader)}\nOptions: {str(options)}"
 

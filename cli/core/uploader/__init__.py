@@ -2,7 +2,7 @@
 import base64
 import json
 import logging
-from cli.core.Exception import CliKeyError
+from ..Exception import CliKeyError
 
 logger = logging.getLogger(__name__)
 
