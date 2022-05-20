@@ -8,13 +8,13 @@ import click
 import httpx as requests
 from tqdm import tqdm
 
-from core.Exception import CliRequestError, CliException
-from core.utilities.PathUtils import NormalizePath, KeySplit
-from core.helpers import LoginHelper
-from core.User import User
-from core.Bucket import Bucket
-from core.File import File
-from core.uploader.CosUploader import CosUploader
+from cli.core.Exception import CliRequestError, CliException
+from cli.core.utilities.PathUtils import NormalizePath, KeySplit
+from cli.core.helpers import LoginHelper
+from cli.core.User import User
+from cli.core.Bucket import Bucket
+from cli.core.File import File
+from cli.core.uploader.CosUploader import CosUploader
 
 logger = logging.getLogger(__name__)
 

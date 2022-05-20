@@ -8,7 +8,7 @@ setup(
     author="LemonPrefect",
     author_email="me@lemonprefect.cn",
     url="https://github.com/lemonprefect/peg",
-    packages=["cli", "cli.core"],
+    packages=["cli", "cli.core", "cli.core.helpers", "cli.core.uploader", "cli.core.utilities"],
     platforms=["all"],
     install_requires=["boto3", "httpx", "python-magic-bin", "click", "tqdm"],
     keywords=["cli", "dogecloud"],

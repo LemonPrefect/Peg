@@ -1,6 +1,5 @@
 # -*- coding=utf-8
 import httpx as requests
-# from .uploader import Uploader
 
 
 class CliException(Exception):
