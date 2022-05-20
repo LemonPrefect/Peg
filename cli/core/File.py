@@ -6,5 +6,4 @@ class File:
         self.time = _time
         self.type = _type
         self.path = path
-# TODO: 优化错误提示 Exception，优化 File 结构
 
