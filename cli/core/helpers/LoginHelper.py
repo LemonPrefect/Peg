@@ -82,14 +82,6 @@ def Login(type: str, phone: str, code: str) -> User:
     logger.debug(data)
     if response.status_code != 200 or data.get("code", -1) != 200:
         raise CliRequestError(response)
-    # if data.get("data", {}).get("exists", False) is not True:
-    #     raise CliKeyError(data)
-    #
-    # assert response.status_code == 200
-    #
-    # data = response.json()
-    # assert data["code"] == 200
-
     token = response.cookies.get("token", None)
     if not token:
         raise CliKeyError(dict(response.cookies))
