@@ -1,15 +1,22 @@
 import json
+import logging
 import os
-import re
+import time
 import urllib.parse
-
+from pathlib import Path
 import click
 import httpx as requests
 from tqdm import tqdm
 
-from .core import LoginHelper
-from .core.User import User
-from .core.Bucket import Bucket
+from core.Exception import CliRequestError, CliException
+from core.utilities.PathUtils import NormalizePath, KeySplit
+from core.helpers import LoginHelper
+from core.User import User
+from core.Bucket import Bucket
+from core.File import File
+from core.uploader.CosUploader import CosUploader
+
+logger = logging.getLogger(__name__)
 
 
 @click.group()
@@ -56,55 +63,64 @@ def upload(file, bucket, path):
         click.echo("at Bucket.Create/Bucket.List")
         return
 
+    file = Path(file)
     if os.path.isdir(file):
-        file = file.strip("/").strip("\\").strip()
-        path = path.strip("/").strip("\\").strip()
-        _path = os.path.abspath(os.path.dirname(file))
-        for root, dirs, _files in os.walk(file):
-            for file in _files:
-                fileAbsPath = os.path.abspath(os.path.join(root, file))
-                uploadPath = "/".join(re.split(r'[/|//|\\\\|\\]', fileAbsPath.replace(_path, "#")))
-                uploadAbsPath = f"{path}{'' if path == '' else '/'}{uploadPath[2:]}".replace(file, "")
-                uploadFile = bucket.File(
-                    name=file,
-                    path=fileAbsPath,
-                    _type="file"
-                )
-                bar = tqdm(total=100, ncols=120, desc=file, ascii=True)
-                try:
-                    bucket.upload(
-                        file=uploadFile,
-                        path=uploadAbsPath,
-                        callbackProgress=lambda etag, progress:
-                        _progress(bar, progress=round(progress * 100), message=etag)
-                    )
-                except AssertionError:
+        rootDirAbsPath = NormalizePath(file.absolute().as_posix())
 
-                    click.echo("Something went wrong, please check the args.")
-                    click.echo("at Bucket.Upload")
-                    return
+        # find all the files recursively, get the path based on the uploading folder(not including) and filename.
+        files = [(
+            _file.absolute().as_posix().rpartition(_file.name)[0].partition(rootDirAbsPath)[2],
+            _file.name
+        ) for _file in file.resolve().glob('**/*') if _file.is_file()]
 
+        # if --no-root-folder not enabled, append the folder name to the upload path.
+        # selfDirPath = NormalizePath(Path(file).resolve().name)
     else:
-        fileAbsPath = os.path.abspath(os.path.join(os.path.dirname(file), file))
-        filename = os.path.basename(file)
-        print(filename)
-        uploadFile = bucket.File(
-            name=filename,
-            path=fileAbsPath,
-            _type="file"
-        )
+        # fallback single file to merge the upload action
+        rootDirAbsPath = NormalizePath(file.absolute().parent.as_posix())
+        files = [("", file.name)]
+
+    path = NormalizePath(path)
+    # Apply for upload info
+    response = bucket.session.post(
+        url="/upload/auth.json",
+        json={
+            "scope": f"{bucket.name}:{path}*",
+            "deadline": round(time.time()) + 10000  # 2 hours to upload a folder, maybe enough.
+        }
+    )
+    data = response.json()
+    logger.debug(response.request)
+    logger.debug(data)
+    if response.status_code != 200 or data.get("code", 0) != 200:
+        click.echo("Upload token failed.")
+
+    sessionToken, accessKeyId, secretAccessKey, info = tuple(data["data"]["uploadToken"].split(":"))
+    bucket.setUploader(CosUploader(sessionToken, accessKeyId, secretAccessKey, info))
+
+    if not files:
+        click.echo(f"No files in the folder {rootDirAbsPath}")
+        return
+
+    for localPath, filename in files:
+        uploadPath = f"{path}/{localPath}"
         bar = tqdm(total=100, ncols=120, desc=filename, ascii=True)
         try:
             bucket.upload(
-                file=uploadFile,
-                path=path,
-                callbackProgress=lambda etag, progress:
-                _progress(bar, progress=round(progress * 100), message=etag)
+                file=File(
+                    name=filename,
+                    path=NormalizePath(Path(os.path.join(file, localPath)).absolute().as_posix())
+                    if localPath != ""
+                    else NormalizePath(file.parent.absolute().as_posix()),
+                    _type="file"
+                ),
+                path=uploadPath,
+                callbackProgress=lambda x, y: _progress(bar, progress=round(x / y * 100), message=None)
             )
-        except AssertionError:
+            _progress(bar, progress=100, message=None)
+        except CliException:
             click.echo("Something went wrong, please check the args.")
             click.echo("at Bucket.Upload")
-            return
 
 
 @main.command(
@@ -126,6 +142,12 @@ def upload(file, bucket, path):
     help="path to list for, such as /images. leave blank with also bucket if need to list buckets."
 )
 def ls(bucket, path):
+    """
+    List bucket or file in bucket like ls
+    :param bucket: bucket name, None if listing bucket
+    :param path: path from the root of bucket to be list, None if listing bucket
+    :return: None
+    """
     token = _feastToken()
     if not token:
         click.echo("Need login first.")
@@ -138,11 +160,15 @@ def ls(bucket, path):
             cookies={"token": token},
             headers={"authorization": "COOKIE"}
         )
-        assert response.status_code == 200
+
         data = response.json()
-        assert data["code"] == 200
+        logger.debug(response.request)
+        logger.debug(data)
+        if response.status_code != 200 or data.get("code") != 200:
+            raise CliRequestError(response)
+
         click.echo(f"{'id':<10}\t{'name':<30}\t{'stored'}")
-        for bucket in data["data"]["buckets"]:
+        for bucket in data.get("data", {}).get("buckets", {}):
             click.echo(f"{bucket['id']:<10}\t{bucket['name']:<30}\t{(int(bucket['space']) / 1024 / 1024):.2f} MiB")
         return
 
@@ -153,10 +179,10 @@ def ls(bucket, path):
         click.echo("Something went wrong, please check the args.")
         click.echo("at Bucket.Create/Bucket.List")
         return
-
     click.echo(f"Directory /{path.rstrip('/').lstrip('/')}, {len(files)} files/directories")
     for file in files:
-        click.echo(f"{file.name.replace(path if path.endswith('/') else (path + '/'), ''):<60}\t{(int(file.fileSize) / 1024):.2f} KiB")
+        click.echo(
+            f"{file.name.replace(path if path.endswith('/') else (path + '/'), ''):<60}\t{(int(file.fileSize) / 1024):.2f} KiB")
 
 
 @main.command(
@@ -177,6 +203,12 @@ def ls(bucket, path):
     help="login method, password or vcode for SMS TOTP (not stable)."
 )
 def login(method, phone):
+    """
+    Login and save token
+    :param method: login method whthin vcode or password
+    :param phone: phone number represents an account
+    :return: None
+    """
     token = _feastToken()
     if token:
         click.echo(f"token {token} is on duty.")
@@ -209,6 +241,10 @@ def login(method, phone):
     help="Overwrite the config file to nothing."
 )
 def logout():
+    """
+    Logout and remove the token
+    :return: None
+    """
     if _feastToken():
         open("./config.json", "w").write("")
         click.echo("Config overwritten.")
@@ -237,6 +273,14 @@ def logout():
     help="path from the / of bucket to where the FILE should located with filename."
 )
 def mv(bucket, src, dst):
+    """
+    Move file from src to dst
+    :param bucket: bucket name
+    :param src: source directory in the bucket
+    :param dst: destination directory in the bucket
+    :return: None
+    """
+
     src = str(src).lstrip("/")
     dst = str(dst).lstrip("/")
 
@@ -257,8 +301,6 @@ def mv(bucket, src, dst):
         click.echo("Something went wrong, please check the args.")
         click.echo("at Bucket.Create/Bucket.Move")
         return
-
-    pass
 
 
 @main.command(
@@ -337,11 +379,13 @@ def rm(bucket, file):
     token = str(token)
     try:
         bucket = Bucket(bucket, User(token))
+        path, name = KeySplit(file)
+        name += "/" if str(file).endswith("/") else ""
         bucket.remove([
-            bucket.File(
-                name=str(file).strip("/").split("/")[-1] + ("/" if str(file).endswith("/") else ""),
-                _type="folder" if str(file).endswith("/") else "file",
-                path="/".join(str(file).strip("/").split("/")[:-1]) + "/"
+            File(
+                name=name,
+                _type="folder" if name.endswith("/") else "file",
+                path=NormalizePath(path)
             )
         ])
     except AssertionError:
@@ -366,6 +410,12 @@ def rm(bucket, file):
     help="folder path from the / of the bucket."
 )
 def mkdir(bucket, fullpath):
+    """
+    Make a directory in the bucket.
+    :param bucket: bucket name
+    :param fullpath: fullpath from root of the bucket, directory name needed
+    :return: None
+    """
     token = _feastToken()
     if not token:
         click.echo("Need login first.")
@@ -406,7 +456,7 @@ def _feastToken():
             params={"product": "home"},
             cookies={"token": config["token"]},
             headers={"authorization": "COOKIE"}
-    ).json()["code"] != 200:
+    ).json().get("code", 0) != 200:
         return False
 
     return config["token"]
@@ -421,7 +471,7 @@ def _progress(bar: tqdm, message, progress):
     help="Show version of Peg.",
 )
 def version():
-    click.echo("0.1~Peg~Code by LemonPrefect with love, me@lemonprefect.cn")
+    click.echo("0.2~Peg~Code by LemonPrefect with love, me@lemonprefect.cn")
 
 
 if __name__ == "__main__":

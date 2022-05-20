@@ -38,7 +38,7 @@ class CosUploader(Uploader):
         """
         return self._uploader.upload_file(
             Bucket=self.bucket,
-            LocalFilePath=file.path,
-            Key=f"{self.prefix}{path}{file.name}",
+            LocalFilePath=f"{file.path}{file.name}",
+            Key=f"{self.prefix}/{path}{file.name}",
             progress_callback=callbackProgress
         )

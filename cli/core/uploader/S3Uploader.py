@@ -27,15 +27,17 @@ class S3Uploader(Uploader):
             endpoint_url=endpoint
         )
 
-    def upload(self, file: File, path: str):
+    def upload(self, file: File, path: str, callbackProgress=None):
         """
         Upload file use S3 SDK, multi-thread.
         :param file: File object with local file path as File.path
         :param path: path in the bucket for the file
+        :param callbackProgress: callback function for the progress
         :return: uploading object of the S3
         """
         return self._uploader.upload_fileobj(
-            open(file.path, "rb"),
+            open(f"{file.path}/{file.name}", "rb"),
             self.prefix,
-            f"{path}{file.name}"
+            f"{path}{file.name}",
+            Callback=callbackProgress
         )
