@@ -182,7 +182,7 @@ def ls(bucket, path):
     click.echo(f"Directory /{path.rstrip('/').lstrip('/')}, {len(files)} files/directories")
     for file in files:
         click.echo(
-            f"{file.name.replace(path if path.endswith('/') else (path + '/'), ''):<60}\t"
+            f"{file.name.replace(path if path.endswith('/') and path != '/' else (path + '/'), ''):<60}\t"
             f"{(int(file.fileSize) / 1024):.2f} KiB"
         )
 
