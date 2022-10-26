@@ -233,7 +233,7 @@ def login(method, phone):
         return
 
     click.echo("Token acquired.")
-    open("./config.json", "w").write(json.dumps({
+    open(Path.home().as_posix() + "/.peg.config.json", "w").write(json.dumps({
         "token": user.token
     }))
     click.echo("token saved.")
@@ -248,7 +248,7 @@ def logout():
     :return: None
     """
     if _feastToken():
-        open("./config.json", "w").write("")
+        open(Path.home().as_posix() + "/.peg.config.json", "w").write("{}")
         click.echo("Config overwritten.")
 
 
@@ -437,14 +437,14 @@ def mkdir(bucket, fullpath):
 
 def _feastToken():
     # Config file doesn't exist
-    if not os.path.exists("./config.json"):
+    if not os.path.exists(Path.home().as_posix() + "/.peg.config.json"):
         return False
 
     # Read and parse config, overwritten to blank if failed
     try:
-        config = json.loads(open("./config.json", "r").read())
+        config = json.loads(open(Path.home().as_posix() + "/.peg.config.json", "r").read())
     except FileNotFoundError or ValueError:
-        open("./config.json", "w").write("")
+        open(Path.home().as_posix() + "/.peg.config.json", "w").write("{}")
         click.echo("Config file crashed, overwritten.")
         return False
 
