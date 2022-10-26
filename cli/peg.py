@@ -174,15 +174,16 @@ def ls(bucket, path):
 
     try:
         bucket = Bucket(bucket, User(token))
+        path = NormalizePath(path)
         files = bucket.list(limit=2147483647, path=path)
     except AssertionError:
         click.echo("Something went wrong, please check the args.")
         click.echo("at Bucket.Create/Bucket.List")
         return
-    click.echo(f"Directory /{path.rstrip('/').lstrip('/')}, {len(files)} files/directories")
+    click.echo(f"Directory /{path.rstrip('/')}, {len(files)} files/directories")
     for file in files:
         click.echo(
-            f"{file.name.replace(path if path.endswith('/') and path != '/' else (path + '/'), ''):<60}\t"
+            f"{file.name.replace(path if path != '/' else '', ''):<60}\t"
             f"{(int(file.fileSize) / 1024):.2f} KiB"
         )
 
