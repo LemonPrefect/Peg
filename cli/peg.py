@@ -174,15 +174,16 @@ def ls(bucket, path):
 
     try:
         bucket = Bucket(bucket, User(token))
+        path = NormalizePath(path)
         files = bucket.list(limit=2147483647, path=path)
     except AssertionError:
         click.echo("Something went wrong, please check the args.")
         click.echo("at Bucket.Create/Bucket.List")
         return
-    click.echo(f"Directory /{path.rstrip('/').lstrip('/')}, {len(files)} files/directories")
+    click.echo(f"Directory /{path.rstrip('/')}, {len(files)} files/directories")
     for file in files:
         click.echo(
-            f"{file.name.replace(path if path.endswith('/') else (path + '/'), ''):<60}\t"
+            f"{file.name.replace(path if path != '/' else '', ''):<60}\t"
             f"{(int(file.fileSize) / 1024):.2f} KiB"
         )
 
@@ -233,7 +234,7 @@ def login(method, phone):
         return
 
     click.echo("Token acquired.")
-    open("./config.json", "w").write(json.dumps({
+    open(Path.home().as_posix() + "/.peg.config.json", "w").write(json.dumps({
         "token": user.token
     }))
     click.echo("token saved.")
@@ -248,7 +249,7 @@ def logout():
     :return: None
     """
     if _feastToken():
-        open("./config.json", "w").write("")
+        open(Path.home().as_posix() + "/.peg.config.json", "w").write("{}")
         click.echo("Config overwritten.")
 
 
@@ -437,14 +438,14 @@ def mkdir(bucket, fullpath):
 
 def _feastToken():
     # Config file doesn't exist
-    if not os.path.exists("./config.json"):
+    if not os.path.exists(Path.home().as_posix() + "/.peg.config.json"):
         return False
 
     # Read and parse config, overwritten to blank if failed
     try:
-        config = json.loads(open("./config.json", "r").read())
+        config = json.loads(open(Path.home().as_posix() + "/.peg.config.json", "r").read())
     except FileNotFoundError or ValueError:
-        open("./config.json", "w").write("")
+        open(Path.home().as_posix() + "/.peg.config.json", "w").write("{}")
         click.echo("Config file crashed, overwritten.")
         return False
 
