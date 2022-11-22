@@ -78,7 +78,7 @@ def upload(file, bucket, path):
     else:
         # fallback single file to merge the upload action
         rootDirAbsPath = NormalizePath(file.absolute().parent.as_posix())
-        files = [("", file.name)]
+        files = [("*", file.name)]
 
     path = NormalizePath(path)
     # Apply for upload info
@@ -110,7 +110,7 @@ def upload(file, bucket, path):
                 file=File(
                     name=filename,
                     path=NormalizePath(Path(os.path.join(file, localPath)).absolute().as_posix())
-                    if localPath != ""
+                    if localPath != "*"
                     else NormalizePath(file.parent.absolute().as_posix()),
                     _type="file"
                 ),
