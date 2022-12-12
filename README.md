@@ -1,5 +1,7 @@
 # Peg
-MOVED TO https://github.com/LemonPrefect/Peg.ts
+
+# MOVED TO https://github.com/LemonPrefect/Peg.ts
+
 Peg is a brief CLI for DogeCloud OSS based on the web requests.
 
 ## Usage
